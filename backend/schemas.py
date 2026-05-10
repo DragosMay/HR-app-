@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str  # Ex: "Admin", "Angajat"
+    admin_code: str | None = None  # NOU: Câmpul secret pentru admini (poate fi gol)
 
 # Ce date trimitem inapoi (Ascundem parola din motive de securitate!)
 class UserResponse(BaseModel):

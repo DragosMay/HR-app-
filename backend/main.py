@@ -30,6 +30,15 @@ def get_db():
 # 1. RUTA PENTRU CREAREA UNUI UTILIZATOR (POST)
 @app.post("/users/", response_model=schemas.UserResponse)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    
+    # --- NOU: VERIFICAREA SECURITATII PENTRU ADMIN ---
+    # Daca utilizatorul a selectat rolul de Admin, verificam codul!
+    if user.role.lower() == "admin":
+        if user.admin_code != "04":
+            # Daca codul e gresit sau lipseste, blocam executia instantaneu
+            raise HTTPException(status_code=403, detail="Cod secret de administrator incorect!")
+    # -------------------------------------------------
+
     # Simulam o criptare a parolei (la un proiect real se folosesc biblioteci precum bcrypt)
     fake_hashed_password = user.password + "notreallyhashed"
     

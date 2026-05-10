@@ -21,7 +21,9 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [isLoginMode, setIsLoginMode] = useState(true)
   const [loginData, setLoginData] = useState({ email: '', password: '' })
-  const [registerData, setRegisterData] = useState({ name: '', email: '', password: '', role: 'Angajat' })
+  
+  // NOU: Am adăugat admin_code în starea inițială
+  const [registerData, setRegisterData] = useState({ name: '', email: '', password: '', role: 'Angajat', admin_code: '' })
   
   const [activeTab, setActiveTab] = useState('HR')
   
@@ -30,14 +32,14 @@ function App() {
   const [timeLogsList, setTimeLogsList] = useState([])
   const [clientsList, setClientsList] = useState([])
   const [projectsList, setProjectsList] = useState([])
-  const [transactionsList, setTransactionsList] = useState([]) // NOU: Lista tranzactii
+  const [transactionsList, setTransactionsList] = useState([]) 
 
   // --- STATE-URI FORMULARE ---
   const [timeData, setTimeData] = useState({ date: '', hours: '', description: '' })
   const [editLogId, setEditLogId] = useState(null)
   const [clientData, setClientData] = useState({ name: '', contact_email: '', industry: 'IT' })
   const [projectData, setProjectData] = useState({ client_id: '', name: '', budget: '', status: 'Planificare' })
-  const [transactionData, setTransactionData] = useState({ project_id: '', type: 'Incasare', amount: '', date: '', description: '' }) // NOU: Formular tranzactii
+  const [transactionData, setTransactionData] = useState({ project_id: '', type: 'Incasare', amount: '', date: '', description: '' }) 
   
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
   const [selectedUserForCalendar, setSelectedUserForCalendar] = useState('')
@@ -45,25 +47,40 @@ function App() {
   // ==========================================
   // API FETCH FUNCTIONS
   // ==========================================
-  const fetchUsers = () => axios.get('http://127.0.0.1:8000/users/').then(res => setUsersList(res.data)).catch(console.error)
-  const fetchTimeLogs = () => axios.get('http://127.0.0.1:8000/time_logs/').then(res => setTimeLogsList(res.data)).catch(console.error)
-  const fetchClients = () => axios.get('http://127.0.0.1:8000/clients/').then(res => setClientsList(res.data)).catch(console.error)
-  const fetchProjects = () => axios.get('http://127.0.0.1:8000/projects/').then(res => setProjectsList(res.data)).catch(console.error)
-  const fetchTransactions = () => axios.get('http://127.0.0.1:8000/transactions/').then(res => setTransactionsList(res.data)).catch(console.error) // NOU: Preluare tranzactii
+  const fetchUsers = () => axios.get('http://20.240.193.135:8000/users/').then(res => setUsersList(res.data)).catch(console.error)
+  const fetchTimeLogs = () => axios.get('http://20.240.193.135:8000/time_logs/').then(res => setTimeLogsList(res.data)).catch(console.error)
+  const fetchClients = () => axios.get('http://20.240.193.135:8000/clients/').then(res => setClientsList(res.data)).catch(console.error)
+  const fetchProjects = () => axios.get('http://20.240.193.135:8000/projects/').then(res => setProjectsList(res.data)).catch(console.error)
+  const fetchTransactions = () => axios.get('http://20.240.193.135:8000/transactions/').then(res => setTransactionsList(res.data)).catch(console.error) 
 
   const handleLogin = (e) => {
     e.preventDefault()
-    axios.post('http://127.0.0.1:8000/login/', loginData)
+    axios.post('http://20.240.193.135:8000/login/', loginData)
       .then(res => {
         setCurrentUser(res.data)
         setSelectedUserForCalendar(res.data.id)
         fetchUsers(); fetchTimeLogs(); fetchClients(); fetchProjects(); fetchTransactions();
-      }).catch(err => alert("Eroare la logare!"))
+      }).catch(err => alert("Eroare la logare! Verifica email si parola."))
   }
 
   const handleRegister = (e) => {
     e.preventDefault()
-    axios.post('http://127.0.0.1:8000/users/', registerData).then(() => { alert("Cont creat!"); setIsLoginMode(true) }).catch(() => alert("Eroare!"))
+    // Trimitem datele catre backend, inclusiv admin_code
+    axios.post('http://20.240.193.135:8000/users/', registerData)
+      .then(() => { 
+        alert("Cont creat cu succes!"); 
+        setIsLoginMode(true);
+        // Resetam datele după inregistrare, mai putin codul de admin care il curatam manual
+        setRegisterData({ name: '', email: '', password: '', role: 'Angajat', admin_code: '' });
+      })
+      .catch((error) => {
+          // Prindem mesajul de eroare din backend (daca e cod invalid, ex: 403)
+          if (error.response && error.response.status === 403) {
+              alert(error.response.data.detail || "Eroare: Cod de admin invalid!");
+          } else {
+             alert("Eroare la crearea contului!");
+          }
+      })
   }
 
   const handleLogout = () => { setCurrentUser(null); setLoginData({ email: '', password: '' }); setActiveTab('HR'); }
@@ -71,18 +88,18 @@ function App() {
   // ==========================================
   // HANDLERS (SUBMITS & DELETES)
   // ==========================================
-  const handleDeleteUser = (id) => { if (window.confirm("Ștergi angajatul?")) axios.delete(`http://127.0.0.1:8000/users/${id}`).then(fetchUsers) }
+  const handleDeleteUser = (id) => { if (window.confirm("Ștergi angajatul?")) axios.delete(`http://20.240.193.135:8000/users/${id}`).then(fetchUsers) }
   
   const handleTimeSubmit = (e) => {
     e.preventDefault()
     const payload = { user_id: currentUser.id, date: timeData.date, hours: parseFloat(timeData.hours), description: timeData.description }
 
     if (editLogId) {
-      axios.put(`http://127.0.0.1:8000/time_logs/${editLogId}`, payload)
+      axios.put(`http://20.240.193.135:8000/time_logs/${editLogId}`, payload)
         .then(() => { alert("Modificat!"); setTimeData({ date: '', hours: '', description: '' }); setEditLogId(null); fetchTimeLogs() })
         .catch(() => alert("Eroare la modificare!"))
     } else {
-      axios.post('http://127.0.0.1:8000/time_logs/', payload)
+      axios.post('http://20.240.193.135:8000/time_logs/', payload)
         .then(() => { alert("Salvat!"); setTimeData({ date: '', hours: '', description: '' }); fetchTimeLogs() })
         .catch(() => alert("Eroare la salvare!"))
     }
@@ -95,7 +112,7 @@ function App() {
 
   const handleDeleteTimeLog = (logId) => {
     if (window.confirm("Sigur vrei să ștergi acest pontaj?")) {
-      axios.delete(`http://127.0.0.1:8000/time_logs/${logId}`)
+      axios.delete(`http://20.240.193.135:8000/time_logs/${logId}`)
         .then(() => fetchTimeLogs())
         .catch(() => alert("Eroare la ștergerea pontajului!"));
     }
@@ -103,25 +120,24 @@ function App() {
 
   const handleClientSubmit = (e) => {
     e.preventDefault()
-    axios.post('http://127.0.0.1:8000/clients/', clientData)
+    axios.post('http://20.240.193.135:8000/clients/', clientData)
       .then(() => { alert("Client adăugat!"); setClientData({ name: '', contact_email: '', industry: 'IT' }); fetchClients() })
   }
 
   const handleProjectSubmit = (e) => {
     e.preventDefault()
-    axios.post('http://127.0.0.1:8000/projects/', { client_id: parseInt(projectData.client_id), name: projectData.name, budget: parseFloat(projectData.budget), status: projectData.status })
+    axios.post('http://20.240.193.135:8000/projects/', { client_id: parseInt(projectData.client_id), name: projectData.name, budget: parseFloat(projectData.budget), status: projectData.status })
       .then(() => { alert("Proiect creat!"); setProjectData({ client_id: '', name: '', budget: '', status: 'Planificare' }); fetchProjects() })
   }
 
   const handleStatusChange = (projectId, newStatus) => {
-    axios.put(`http://127.0.0.1:8000/projects/${projectId}/status?status=${newStatus}`)
+    axios.put(`http://20.240.193.135:8000/projects/${projectId}/status?status=${newStatus}`)
       .then(() => fetchProjects())
   }
 
-  // NOU: Salvare Tranzactie Financiara
   const handleTransactionSubmit = (e) => {
     e.preventDefault()
-    axios.post('http://127.0.0.1:8000/transactions/', { project_id: parseInt(transactionData.project_id), type: transactionData.type, amount: parseFloat(transactionData.amount), date: transactionData.date, description: transactionData.description })
+    axios.post('http://20.240.193.135:8000/transactions/', { project_id: parseInt(transactionData.project_id), type: transactionData.type, amount: parseFloat(transactionData.amount), date: transactionData.date, description: transactionData.description })
       .then(() => { alert("Tranzacție salvată!"); setTransactionData({ project_id: '', type: 'Incasare', amount: '', date: '', description: '' }); fetchTransactions() })
   }
 
@@ -135,7 +151,6 @@ function App() {
   const totalBudget = projectsList.reduce((sum, p) => sum + p.budget, 0);
   const activeProjectsCount = projectsList.filter(p => p.status === 'În Lucru').length;
 
-  // NOU: Calcule Financiare (KPI)
   const totalIncasari = transactionsList.filter(t => t.type === 'Incasare').reduce((sum, t) => sum + t.amount, 0);
   const totalCheltuieli = transactionsList.filter(t => t.type === 'Cheltuiala').reduce((sum, t) => sum + t.amount, 0);
   const profitNet = totalIncasari - totalCheltuieli;
@@ -158,9 +173,25 @@ function App() {
               <input placeholder="Nume" value={registerData.name} onChange={e => setRegisterData({...registerData, name: e.target.value})} required style={STYLES.input} />
               <input placeholder="Email" type="email" value={registerData.email} onChange={e => setRegisterData({...registerData, email: e.target.value})} required style={STYLES.input} />
               <input placeholder="Parolă" type="password" value={registerData.password} onChange={e => setRegisterData({...registerData, password: e.target.value})} required style={STYLES.input} />
+              
               <select value={registerData.role} onChange={e => setRegisterData({...registerData, role: e.target.value})} style={STYLES.input}>
-                <option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Angajat">Angajat</option>
+                <option value="Angajat">Angajat</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
               </select>
+
+              {/* NOU: Input-ul pentru cod secret care apare doar cand rolul este Admin */}
+              {registerData.role === "Admin" && (
+                  <input 
+                      placeholder="Cod Secret Admin (obligatoriu)" 
+                      type="password" 
+                      value={registerData.admin_code} 
+                      onChange={e => setRegisterData({...registerData, admin_code: e.target.value})} 
+                      required 
+                      style={{...STYLES.input, borderColor: COLORS.danger, borderWidth: '2px'}} 
+                  />
+              )}
+
               <button type="submit" style={STYLES.btnPrimary}>Înregistrare</button>
               <p style={{ textAlign: 'center', fontSize: '14px', cursor: 'pointer', color: COLORS.primary }} onClick={() => setIsLoginMode(true)}>Înapoi la login</p>
             </form>
@@ -187,7 +218,6 @@ function App() {
           <button onClick={() => setActiveTab('PONTAJ')} style={{ padding: '12px', textAlign: 'left', background: activeTab === 'PONTAJ' ? COLORS.sidebarActive : 'transparent', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '8px' }}>⏱️ Pontaj Angajați</button>
           <button onClick={() => setActiveTab('PROIECTE')} style={{ padding: '12px', textAlign: 'left', background: activeTab === 'PROIECTE' ? COLORS.sidebarActive : 'transparent', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '8px' }}>📁 Proiecte & Clienți</button>
           
-          {/* NOU: Buton Financiar (vizibil doar pt Management) */}
           {(currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
             <button onClick={() => setActiveTab('FINANCIAR')} style={{ padding: '12px', textAlign: 'left', background: activeTab === 'FINANCIAR' ? COLORS.sidebarActive : 'transparent', border: 'none', color: 'white', cursor: 'pointer', borderRadius: '8px' }}>💰 Analiză Financiară</button>
           )}
